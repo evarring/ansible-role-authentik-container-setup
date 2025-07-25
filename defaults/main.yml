@@ -1,0 +1,81 @@
+# SPDX-License-Identifier: MIT-0
+---
+# defaults file for authentik_container_setup
+
+authentik_container_setup_common_dir: /srv/authentik-common
+authentik_container_setup_user_uid_gid: "1000:1000"
+
+# worker
+authentik_container_setup_worker_name: authentik-worker
+authentik_container_setup_worker_image: ghcr.io/goauthentik/server:latest
+authentik_container_setup_worker_command: worker
+authentik_container_setup_worker_labels:
+  traefik.enable: "false"
+authentik_container_setup_worker_dir: /srv/authentik-worker
+
+authentik_container_setup_worker_networks:
+  - name: authentik
+
+authentik_container_setup_worker_env:
+  AUTHENTIK_SECRET_KEY: asdd # openssl rand -base64 60 | tr -d '\n'
+  AUTHENTIK_REDIS__HOST: authentik-redis
+  AUTHENTIK_POSTGRESQL__HOST: postgresql
+  AUTHENTIK_POSTGRESQL__USER: authentikuser
+  AUTHENTIK_POSTGRESQL__NAME: authentikdb
+  AUTHENTIK_POSTGRESQL__PASSWORD: dsa # openssl rand -base64 36 | tr -d '\n'
+  # Skip OOBE by setting main admin credentials
+  # AUTHENTIK_BOOTSTRAP_PASSWORD: akadminpassword
+  # AUTHENTIK_BOOTSTRAP_TOKEN: akadminAPItoken
+  # AUTHENTIK_BOOTSTRAP_EMAIL: "evar.ring@gmail.com"
+
+authentik_container_setup_worker_recreate: true
+authentik_container_setup_worker_privileged: false
+authentik_container_setup_worker_restart_policy: unless-stopped
+
+# server
+authentik_container_setup_name: authentik-server
+authentik_container_setup_image: ghcr.io/goauthentik/server:latest
+authentik_container_setup_networks:
+  - name: authentik
+authentik_container_setup_command: server
+authentik_container_setup_labels:
+  traefik.enable: "false"
+authentik_container_setup_env:
+  AUTHENTIK_SECRET_KEY: "{{ authentik_container_setup_worker_env.AUTHENTIK_SECRET_KEY }}"
+  AUTHENTIK_REDIS__HOST: "{{ authentik_container_setup_worker_env.AUTHENTIK_REDIS__HOST }}"
+  AUTHENTIK_POSTGRESQL__HOST: "{{ authentik_container_setup_worker_env.AUTHENTIK_POSTGRESQL__HOST }}"
+  AUTHENTIK_POSTGRESQL__USER: "{{ authentik_container_setup_worker_env.POSTGRESQL__USER }}"
+  AUTHENTIK_POSTGRESQL__NAME: "{{ authentik_container_setup_worker_env.POSTGRESQL__NAME }}"
+  AUTHENTIK_POSTGRESQL__PASSWORD: "{{ authentik_container_setup_worker_env.AUTHENTIK_POSTGRESQL__PASSWORD }}"
+  AUTHENTIK_ERROR_REPORTING__ENABLED: "true"
+  # SMTP config
+  # AUTHENTIK_EMAIL__HOST: smtp.domain.com
+  # AUTHENTIK_EMAIL__PORT: "587"
+  # AUTHENTIK_EMAIL__USERNAME: resend
+  # AUTHENTIK_EMAIL__PASSWORD: password
+  # AUTHENTIK_EMAIL__USE_TLS: "true"
+  # AUTHENTIK_EMAIL__USE_SSL: "false"
+  # AUTHENTIK_EMAIL__TIMEOUT: "10"
+  # AUTHENTIK_EMAIL__FROM: authentik@domain.com
+authentik_container_setup_recreate: true
+authentik_container_setup_privileged: false
+authentik_container_setup_restart_policy: unless-stopped
+
+# redis
+authentik_container_setup_redis_name: authentik-redis
+authentik_container_setup_redis_image: docker.io/library/redis:8.0.3-alpine
+authentik_container_setup_redis_command: --save 60 1 --loglevel warning
+authentik_container_setup_redis_healthcheck:
+  test: ["CMD-SHELL", "redis-cli ping | grep PONG"]
+  start_period: 20s
+  interval: 30s
+  retries: 5
+  timeout: 3s
+authentik_container_setup_redis_labels:
+  traefik.enable: "false"
+authentik_container_setup_redis_dir: /srv/authentik-redis
+authentik_container_setup_redis_networks:
+  - name: authentik
+authentik_container_setup_redis_recreate: true
+authentik_container_setup_redis_privileged: false
+authentik_container_setup_redis_restart_policy: unless-stopped

@@ -1,0 +1,120 @@
+# SPDX-License-Identifier: MIT-0
+---
+# tasks file for authentik_container_setup
+
+- name: Ensure common container volume directoriest exist
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    mode: '0744'
+    owner: "{{ ansible_user | default(root) }}"
+    group: "{{ ansible_user | default(root) }}"
+  loop:
+    - "{{ authentik_container_setup_common_dir }}/media"
+    - "{{ authentik_container_setup_common_dir }}/custom-templates"
+  become: true
+
+- name: Ensure redis container volume directories exist
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    mode: '0744'
+    owner: "{{ ansible_user | default(root) }}"
+    group: "{{ ansible_user | default(root) }}"
+  loop:
+    - "{{ authentik_container_setup_redis_dir }}/redis"
+  become: true
+
+- name: Ensure worker container volume directories exist
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    mode: '0744'
+    owner: "{{ ansible_user | default(root) }}"
+    group: "{{ ansible_user | default(root) }}"
+  loop:
+    - "{{ authentik_container_setup_worker_dir }}/certs"
+  become: true
+
+- name: Create networks
+  community.docker.docker_network:
+    name: "{{ item.name }}"
+  loop: "{{ authentik_container_setup_networks }}"
+  become: true
+
+- name: Create worker container
+  community.docker.docker_container:
+    name: "{{ authentik_container_setup_worker_name }}"
+    image: "{{ authentik_container_setup_worker_image }}"
+    state: "{{ authentik_container_setup_worker_state | default('started') }}"
+    network_mode: "{{ authentik_container_setup_worker_network_mode }}"
+    networks: "{{ authentik_container_setup_worker_networks }}"
+    healthcheck: "{{ authentik_container_setup_worker_healthcheck | default(omit) }}"
+    command: "{{ authentik_container_setup_worker_command | default(omit) }}"
+    recreate: "{{ authentik_container_setup_worker_recreate }}"
+    privileged: "{{ authentik_container_setup_worker_privileged }}"
+    # `user: root` and the docker socket volume are optional.
+    # See more for the docker socket integration here:
+    # https://goauthentik.io/docs/outposts/integrations/docker
+    # Removing `user: root` also prevents the worker from fixing the permissions
+    # on the mounted folders, so when removing this make sure the folders have the correct UID/GID
+    # (1000:1000 by default)
+    user: "{{ authentik_container_setup_user_uid_gid | default(omit) }}"
+    ports: "{{ authentik_container_setup_worker_ports | default(omit) }}"
+    volumes:
+      - "/var/run/docker.sock:/var/run/docker.sock"
+      - "{{ authentik_container_setup_worker_dir }}/certs:/certs/:rw,Z"
+      - "{{ authentik_container_setup_common_dir }}/media:/media/:rw,z"
+      - "{{ authentik_container_setup_common_dir }}/custom-templates:/templates/:rw,z"
+    env: "{{ authentik_container_setup_worker_env | default(omit) }}"
+    labels: "{{ authentik_container_setup_worker_labels }}"
+    restart_policy: "{{ authentik_container_setup_worker_restart_policy }}"
+
+- name: Create redis container
+  community.docker.docker_container:
+    name: "{{ authentik_container_setup_redis_name }}"
+    image: "{{ authentik_container_setup_redis_image }}"
+    state: "{{ authentik_container_setup_redis_state | default('started') }}"
+    network_mode: "{{ authentik_container_setup_redis_network_mode }}"
+    networks: "{{ authentik_container_setup_redis_networks }}"
+    healthcheck: "{{ authentik_container_setup_redis_healthcheck | default(omit) }}"
+    command: "{{ authentik_container_setup_redis_command | default(omit) }}"
+    recreate: "{{ authentik_container_setup_redis_recreate }}"
+    privileged: "{{ authentik_container_setup_redis_privileged }}"
+    user: "{{ authentik_container_setup_user_uid_gid | default(omit) }}"
+    ports: "{{ authentik_container_setup_redis_ports | default(omit) }}"
+    volumes:
+      - "{{ authentik_container_setup_redis_dir }}/redis/:/data/:rw,Z"
+    env: "{{ authentik_container_setup_redis_env | default(omit) }}"
+    labels: "{{ authentik_container_setup_redis_labels }}"
+    restart_policy: "{{ authentik_container_setup_redis_restart_policy }}"
+
+- name: Create authentik container
+  community.docker.docker_container:
+    name: "{{ authentik_container_setup_name }}"
+    image: "{{ authentik_container_setup_image }}"
+    state: "{{ authentik_container_setup_state | default('started') }}"
+    network_mode: "{{ authentik_container_setup_network_mode }}"
+    networks: "{{ authentik_container_setup_networks }}"
+    healthcheck: "{{ authentik_container_setup_healthcheck | default(omit) }}"
+    command: "{{ authentik_container_setup_command | default(omit) }}"
+    recreate: "{{ authentik_container_setup_recreate }}"
+    privileged: "{{ authentik_container_setup_privileged }}"
+    user: "{{ authentik_container_setup_user_uid_gid | default(omit) }}"
+    ports: "{{ authentik_container_setup_ports | default(omit) }}"
+    volumes:
+      - "{{ authentik_container_setup_common_dir }}/media/:/media/:rw,z"
+      - "{{ authentik_container_setup_common_dir }}/custom-templates/:/templates/:rw,z"
+    env: "{{ authentik_container_setup_env | default(omit) }}"
+    labels: "{{ authentik_container_setup_labels }}"
+    restart_policy: "{{ authentik_container_setup_restart_policy }}"
+
+- name: Enable linger for user {{ ansible_user | default('root') }}
+  ansible.builtin.command:
+    argv:
+      - /usr/bin/loginctl
+      - enable-linger
+      - "{{ ansible_user | default('root') }}"
+    creates: "/var/lib/systemd/linger/{{ ansible_user | default('root') }}"
+  become: true
+  when: ansible_virtualization_type != "container"
