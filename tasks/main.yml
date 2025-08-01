@@ -2,6 +2,35 @@
 ---
 # tasks file for authentik_container_setup
 
+- name: Pull the configured images if they haven't already and stop containers if changed
+  notify: Stop containers
+  block:
+    - name: Pull the configured images if they haven't already
+      community.docker.docker_image:
+        name: "{{ authentikimage_item }}"
+        source: pull
+      loop:
+        - "{{ authentik_container_setup_image }}"
+        - "{{ authentik_container_setup_worker_image }}"
+        - "{{ authentik_container_setup_redis_image }}"
+      loop_control:
+        loop_var: authentikimage_item
+
+- name: Ensure authentik containers are stopped when recreating
+  when: >
+    authentik_container_setup_recreate or
+    authentik_container_setup_worker_recreate or
+    authentik_container_setup_redis_recreate
+  block:
+    - name: Notify the handler
+      ansible.builtin.debug:
+        msg: "Stopping containers for recreation"
+      notify: Stop containers
+      changed_when: true
+
+    - name: Flush handlers immediately
+      ansible.builtin.meta: flush_handlers
+
 - name: Ensure common container volume directoriest exist
   ansible.builtin.file:
     path: "{{ item }}"

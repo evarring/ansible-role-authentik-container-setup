@@ -28,7 +28,7 @@ authentik_container_setup_worker_env:
   # AUTHENTIK_BOOTSTRAP_TOKEN: akadminAPItoken
   # AUTHENTIK_BOOTSTRAP_EMAIL: "evar.ring@gmail.com"
 
-authentik_container_setup_worker_recreate: true
+authentik_container_setup_worker_recreate: false
 authentik_container_setup_worker_privileged: false
 authentik_container_setup_worker_restart_policy: unless-stopped
 
@@ -57,7 +57,7 @@ authentik_container_setup_env:
   # AUTHENTIK_EMAIL__USE_SSL: "false"
   # AUTHENTIK_EMAIL__TIMEOUT: "10"
   # AUTHENTIK_EMAIL__FROM: authentik@domain.com
-authentik_container_setup_recreate: true
+authentik_container_setup_recreate: false
 authentik_container_setup_privileged: false
 authentik_container_setup_restart_policy: unless-stopped
 
@@ -76,6 +76,6 @@ authentik_container_setup_redis_labels:
 authentik_container_setup_redis_dir: /srv/authentik-redis
 authentik_container_setup_redis_networks:
   - name: authentik
-authentik_container_setup_redis_recreate: true
+authentik_container_setup_redis_recreate: false
 authentik_container_setup_redis_privileged: false
 authentik_container_setup_redis_restart_policy: unless-stopped

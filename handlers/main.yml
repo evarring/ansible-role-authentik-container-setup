@@ -1,3 +1,14 @@
 # SPDX-License-Identifier: MIT-0
 ---
 # handlers file for authentik_container_setup
+
+- name: Stop containers
+  community.docker.docker_container:
+    name: "{{ authentikname_item }}"
+    state: "stopped"
+  loop:
+    - "{{ authentik_container_setup_name }}"
+    - "{{ authentik_container_setup_worker_name }}"
+    - "{{ authentik_container_setup_redis_name }}"
+  loop_control:
+    loop_var: authentikname_item
