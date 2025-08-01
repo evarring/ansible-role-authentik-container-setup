@@ -15,6 +15,11 @@
         - "{{ authentik_container_setup_redis_image }}"
       loop_control:
         loop_var: authentikimage_item
+      register: authentik_image_pull_result
+
+    - name: Flush handlers immediately
+      ansible.builtin.meta: flush_handlers
+      when: authentik_image_pull_result.changed # noqa: no-handler
 
 - name: Ensure authentik containers are stopped when recreating
   when: >
