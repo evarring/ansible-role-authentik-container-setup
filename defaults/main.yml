@@ -13,6 +13,9 @@ authentik_container_setup_worker_labels:
   traefik.enable: "false"
 authentik_container_setup_worker_dir: /srv/authentik-worker
 
+authentik_container_setup_worker_cpus: 1
+authentik_container_setup_worker_memory: 1G
+
 authentik_container_setup_worker_networks:
   - name: authentik
 
@@ -40,6 +43,10 @@ authentik_container_setup_networks:
 authentik_container_setup_command: server
 authentik_container_setup_labels:
   traefik.enable: "false"
+
+authentik_container_setup_cpus: 1
+authentik_container_setup_memory: 2G
+
 authentik_container_setup_env:
   AUTHENTIK_SECRET_KEY: "{{ authentik_container_setup_worker_env.AUTHENTIK_SECRET_KEY }}"
   AUTHENTIK_REDIS__HOST: "{{ authentik_container_setup_worker_env.AUTHENTIK_REDIS__HOST }}"
@@ -73,6 +80,10 @@ authentik_container_setup_redis_healthcheck:
   timeout: 3s
 authentik_container_setup_redis_labels:
   traefik.enable: "false"
+
+authentik_container_setup_redis_cpus: 0.5
+authentik_container_setup_redis_memory: 128M
+
 authentik_container_setup_redis_dir: /srv/authentik-redis
 authentik_container_setup_redis_networks:
   - name: authentik
